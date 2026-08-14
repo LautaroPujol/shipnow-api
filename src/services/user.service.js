@@ -29,7 +29,7 @@ class UserService {
 
     const role = Object.values(USER_ROLES).includes(userData.role)
       ? userData.role
-      : USER_ROLES.USER;
+      : USER_ROLES.CLIENTE;
 
     const hashedPassword = await bcrypt.hash(userData.password, SALT_ROUNDS);
 

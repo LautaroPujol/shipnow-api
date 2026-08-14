@@ -21,6 +21,13 @@ class UserRepository {
     const { password, __v, ...safeUser } = created.toObject();
     return safeUser;
   }
+  async insertMany(users) {
+    const created = await UserModel.insertMany(users);
+    return created.map((doc) => {
+      const { password, __v, ...safeUser } = doc.toObject();
+      return safeUser;
+    });
+  }
 
   async updateById(id, updateData) {
     return UserModel.findByIdAndUpdate(id, updateData, {

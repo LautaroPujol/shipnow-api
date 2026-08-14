@@ -6,7 +6,21 @@ export const PRODUCT_STATUS = Object.freeze({
 
 export const USER_ROLES = Object.freeze({
   ADMIN: 'admin',
-  USER: 'user',
+  CLIENTE: 'cliente',
+  REPARTIDOR: 'repartidor',
+});
+
+export const PEDIDO_STATUS = Object.freeze({
+  PENDIENTE: 'pendiente',
+  EN_PROCESO: 'en_proceso',
+  ENTREGADO: 'entregado',
+  CANCELADO: 'cancelado',
+});
+
+export const PEDIDO_PRIORITY = Object.freeze({
+  BAJA: 'baja',
+  MEDIA: 'media',
+  ALTA: 'alta',
 });
 
 export const HTTP_STATUS = Object.freeze({
