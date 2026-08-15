@@ -4,6 +4,7 @@ import config from './config/index.js';
 import productRoutes from './routes/product.routes.js';
 import userRoutes from './routes/user.routes.js';
 import mockRoutes from './routes/mock.routes.js';
+import errorHandler from './middlewares/errorHandler.js';
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use('/api/mocks', mockRoutes);
 app.use((req, res) => {
   res.status(404).json({ status: 'error', message: 'Ruta no encontrada' });
 });
+app.use(errorHandler);
 
 async function startServer() {
   try {

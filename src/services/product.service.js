@@ -1,5 +1,7 @@
 import productRepository from '../repositories/product.repository.js';
 import { PRODUCT_STATUS } from '../utils/constants.js';
+import createError from '../errors/errorFactory.js';
+import ERROR_TYPES from '../errors/enums.js';
 
 class ProductService {
   async getAllProducts({ includeOutOfStock = false } = {}) {
@@ -13,9 +15,7 @@ class ProductService {
   async getProductById(id) {
     const product = await productRepository.getById(id);
     if (!product) {
-      const error = new Error('Producto no encontrado');
-      error.statusCode = 404;
-      throw error;
+      throw createError(ERROR_TYPES.PRODUCT_NOT_FOUND);
     }
     return product;
   }
@@ -23,9 +23,10 @@ class ProductService {
   async createProduct(productData) {
     const alreadyExists = await productRepository.existsByCode(productData.code);
     if (alreadyExists) {
-      const error = new Error(`Ya existe un producto con el código "${productData.code}"`);
-      error.statusCode = 400;
-      throw error;
+      throw createError(ERROR_TYPES.PRODUCT_CODE_DUPLICATED, {
+        message: `Ya existe un producto con el código "${productData.code}"`,
+        details: { code: productData.code },
+      });
     }
 
     const stock = productData.stock ?? 0;

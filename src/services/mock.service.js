@@ -4,14 +4,17 @@ import userRepository from '../repositories/user.repository.js';
 import pedidoRepository from '../repositories/pedido.repository.js';
 import entregaRepository from '../repositories/entrega.repository.js';
 import { USER_ROLES, PEDIDO_STATUS, PEDIDO_PRIORITY } from '../utils/constants.js';
+import createError from '../errors/errorFactory.js';
+import ERROR_TYPES from '../errors/enums.js';
 
 const SALT_ROUNDS = 10;
+const DEFAULT_QTY = 5;
+const MAX_QTY = 100;
 
 const NOMBRES = ['Ana', 'Luis', 'Marcos', 'Sofía', 'Julieta', 'Nicolás', 'Camila', 'Franco', 'Valentina', 'Bruno'];
 const APELLIDOS = ['Pérez', 'Gómez', 'Fernández', 'Rodríguez', 'Díaz', 'Romero', 'Torres', 'Flores', 'Acosta', 'Benítez'];
 const CALLES = ['Av. Corrientes', 'San Martín', 'Belgrano', 'Mitre', 'Rivadavia', 'Sarmiento', '9 de Julio', 'Alem'];
 
-// ADMIN se crea a mano; para mocks masivos solo tienen sentido estos dos roles.
 const MOCK_ROLES = [USER_ROLES.CLIENTE, USER_ROLES.REPARTIDOR];
 
 function pickRandom(array) {
@@ -22,12 +25,35 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+/**
+ * Valida el qty que llega crudo desde la query string (string | undefined).
+ * Si no vino, usa el default. Si vino pero es inválido, tira CustomError.
+ * Acá es "la capa que corresponde": el Controller ya no decide qué es válido.
+ */
+function resolveQty(rawQty) {
+  if (rawQty === undefined || rawQty === null || rawQty === '') {
+    return DEFAULT_QTY;
+  }
+
+  const qty = Number(rawQty);
+
+  if (!Number.isInteger(qty) || qty <= 0) {
+    throw createError(ERROR_TYPES.INVALID_MOCK_QTY, {
+      details: { qtyRecibido: rawQty },
+    });
+  }
+
+  if (qty > MAX_QTY) {
+    throw createError(ERROR_TYPES.INVALID_MOCK_QTY, {
+      message: `La cantidad máxima permitida por request es ${MAX_QTY}.`,
+      details: { qtyRecibido: qty, maximo: MAX_QTY },
+    });
+  }
+
+  return qty;
+}
+
 class MockService {
-  /**
-   * Genera usuarios simulados EN MEMORIA, sin tocar la base.
-   * La password queda en texto plano a propósito: es un dato de mentira
-   * para inspeccionar la FORMA del dato, no para loguearse con él.
-   */
   generateMockUsers(qty) {
     return Array.from({ length: qty }, () => {
       const firstName = pickRandom(NOMBRES);
@@ -68,8 +94,27 @@ class MockService {
     });
   }
 
-  /** Inserta usuarios simulados reales en Mongo (hasheando la password). */
-  async seedUsers(qty) {
+  // ---- Endpoints "GET" (memoria, con validación de qty) ----
+
+  getSimulatedUsers(rawQty) {
+    const qty = resolveQty(rawQty);
+    return this.generateMockUsers(qty);
+  }
+
+  getSimulatedPedidos(rawQty) {
+    const qty = resolveQty(rawQty);
+    return this.generateMockPedidos(qty);
+  }
+
+  getSimulatedEntregas(rawQty) {
+    const qty = resolveQty(rawQty);
+    return this.generateMockEntregas(qty);
+  }
+
+  // ---- Endpoints "POST /seed" (persisten, con validación + manejo de fallas de Mongo) ----
+
+  async seedUsers(rawQty) {
+    const qty = resolveQty(rawQty);
     const mockUsers = this.generateMockUsers(qty);
     const hashed = await Promise.all(
       mockUsers.map(async (user) => ({
@@ -77,11 +122,20 @@ class MockService {
         password: await bcrypt.hash(user.password, SALT_ROUNDS),
       }))
     );
-    return userRepository.insertMany(hashed);
+
+    try {
+      return await userRepository.insertMany(hashed);
+    } catch (dbError) {
+      console.error('[mock.service] Fallo insertando usuarios simulados:', dbError);
+      throw createError(ERROR_TYPES.MOCK_SEED_FAILED, {
+        details: { coleccion: 'usuarios' },
+      });
+    }
   }
 
-  /** Inserta pedidos reales, asociados a usuarios reales (existentes o recién creados). */
-  async seedPedidos(qty) {
+  async seedPedidos(rawQty) {
+    const qty = resolveQty(rawQty);
+
     let usuarios = await userRepository.getAll();
     if (usuarios.length === 0) {
       usuarios = await this.seedUsers(Math.max(qty, 3));
@@ -89,11 +143,20 @@ class MockService {
     const usuarioIds = usuarios.map((u) => u._id);
 
     const mockPedidos = this.generateMockPedidos(qty, { usuarioIds });
-    return pedidoRepository.insertMany(mockPedidos);
+
+    try {
+      return await pedidoRepository.insertMany(mockPedidos);
+    } catch (dbError) {
+      console.error('[mock.service] Fallo insertando pedidos simulados:', dbError);
+      throw createError(ERROR_TYPES.MOCK_SEED_FAILED, {
+        details: { coleccion: 'pedidos' },
+      });
+    }
   }
 
-  /** Inserta entregas reales, asociadas a pedidos reales y, si hay, a repartidores reales. */
-  async seedEntregas(qty) {
+  async seedEntregas(rawQty) {
+    const qty = resolveQty(rawQty);
+
     let pedidos = await pedidoRepository.getAll();
     if (pedidos.length === 0) {
       pedidos = await this.seedPedidos(Math.max(qty, 3));
@@ -104,7 +167,15 @@ class MockService {
     const repartidorIds = repartidores.map((r) => r._id);
 
     const mockEntregas = this.generateMockEntregas(qty, { pedidoIds, repartidorIds });
-    return entregaRepository.insertMany(mockEntregas);
+
+    try {
+      return await entregaRepository.insertMany(mockEntregas);
+    } catch (dbError) {
+      console.error('[mock.service] Fallo insertando entregas simuladas:', dbError);
+      throw createError(ERROR_TYPES.MOCK_SEED_FAILED, {
+        details: { coleccion: 'entregas' },
+      });
+    }
   }
 }
 
