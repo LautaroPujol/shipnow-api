@@ -135,3 +135,46 @@ curl -X PUT "http://localhost:3000/api/users/<id>" -H "Content-Type: application
 ```
 
 Todos deberían devolver la misma estructura `{ status, type, message, details }`, con el `statusCode` HTTP correspondiente (400 para errores de validación, 404 para recursos no encontrados, 500 para fallas internas o de base de datos).
+
+## Logging y monitoreo (Módulo 4)
+
+ShipNow usa **Winston** como logger centralizado, configurado en `src/config/logger.js`, con salida a consola y a archivo.
+
+### Niveles de log
+
+De más grave a menos grave: `fatal`, `error`, `warning`, `info`, `http`, `debug`.
+
+- **`fatal`**: fallas críticas de arranque (ej. no se pudo conectar a MongoDB al iniciar).
+- **`error`**: errores inesperados del servidor, o fallas de base de datos durante una operación.
+- **`warning`**: errores esperados/de negocio (recurso no encontrado, dato inválido) y eventos a vigilar (ruta inexistente).
+- **`info`**: eventos relevantes que sí ocurren en producción (servidor iniciado, conexión a Mongo, datos de prueba insertados).
+- **`http`**: trazas de requests.
+- **`debug`**: información técnica solo útil en desarrollo (stack traces completos, generación de mocks en memoria).
+
+### Comportamiento según entorno
+
+El nivel activo depende de `NODE_ENV` (variable validada en `src/config/index.js`, Módulo 1):
+
+- **`development`**: se muestran todos los niveles, incluido `debug`.
+- **`production`**: solo `info`, `warning`, `error` y `fatal` — se omiten `http` y `debug` para reducir ruido.
+
+### Persistencia y rotación de archivos
+
+Los niveles `error` y `fatal` se guardan además en archivos dentro de la carpeta `logs/`, con rotación diaria (`winston-daily-rotate-file`): un archivo nuevo por día (`error-YYYY-MM-DD.log`), máximo 20MB por archivo, y se conservan solo los últimos 14 días.
+
+La carpeta `logs/` está en `.gitignore` — los archivos de log no se suben al repositorio, solo se generan localmente al correr la aplicación.
+
+### Endpoint de prueba del logger
+
+`GET /api/logs/test` dispara un log de cada uno de los 6 niveles, para verificar rápidamente que la configuración funciona (no representa funcionalidad real de negocio, es una herramienta interna).
+
+```bash
+curl "http://localhost:3000/api/logs/test"
+```
+
+Después de llamarlo, revisá la consola (deberían verse los 6 niveles) y el archivo más reciente en `logs/` (solo debería tener las líneas de `error` y `fatal`):
+
+```bash
+# En PowerShell
+Get-Content logs\error-*.log
+```

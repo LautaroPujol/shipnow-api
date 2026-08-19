@@ -6,6 +6,7 @@ import entregaRepository from '../repositories/entrega.repository.js';
 import { USER_ROLES, PEDIDO_STATUS, PEDIDO_PRIORITY } from '../utils/constants.js';
 import createError from '../errors/errorFactory.js';
 import ERROR_TYPES from '../errors/enums.js';
+import logger from '../config/logger.js';
 
 const SALT_ROUNDS = 10;
 const DEFAULT_QTY = 5;
@@ -25,11 +26,6 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-/**
- * Valida el qty que llega crudo desde la query string (string | undefined).
- * Si no vino, usa el default. Si vino pero es inválido, tira CustomError.
- * Acá es "la capa que corresponde": el Controller ya no decide qué es válido.
- */
 function resolveQty(rawQty) {
   if (rawQty === undefined || rawQty === null || rawQty === '') {
     return DEFAULT_QTY;
@@ -38,12 +34,14 @@ function resolveQty(rawQty) {
   const qty = Number(rawQty);
 
   if (!Number.isInteger(qty) || qty <= 0) {
+    logger.warning(`Cantidad inválida enviada al endpoint de mocks: "${rawQty}"`);
     throw createError(ERROR_TYPES.INVALID_MOCK_QTY, {
       details: { qtyRecibido: rawQty },
     });
   }
 
   if (qty > MAX_QTY) {
+    logger.warning(`Cantidad excede el máximo permitido en mocks: ${qty} (máximo ${MAX_QTY})`);
     throw createError(ERROR_TYPES.INVALID_MOCK_QTY, {
       message: `La cantidad máxima permitida por request es ${MAX_QTY}.`,
       details: { qtyRecibido: qty, maximo: MAX_QTY },
@@ -94,24 +92,23 @@ class MockService {
     });
   }
 
-  // ---- Endpoints "GET" (memoria, con validación de qty) ----
-
   getSimulatedUsers(rawQty) {
     const qty = resolveQty(rawQty);
+    logger.debug(`Generando ${qty} usuarios simulados en memoria`);
     return this.generateMockUsers(qty);
   }
 
   getSimulatedPedidos(rawQty) {
     const qty = resolveQty(rawQty);
+    logger.debug(`Generando ${qty} pedidos simulados en memoria`);
     return this.generateMockPedidos(qty);
   }
 
   getSimulatedEntregas(rawQty) {
     const qty = resolveQty(rawQty);
+    logger.debug(`Generando ${qty} entregas simuladas en memoria`);
     return this.generateMockEntregas(qty);
   }
-
-  // ---- Endpoints "POST /seed" (persisten, con validación + manejo de fallas de Mongo) ----
 
   async seedUsers(rawQty) {
     const qty = resolveQty(rawQty);
@@ -124,9 +121,11 @@ class MockService {
     );
 
     try {
-      return await userRepository.insertMany(hashed);
+      const inserted = await userRepository.insertMany(hashed);
+      logger.info(`${inserted.length} usuarios de prueba insertados en MongoDB`);
+      return inserted;
     } catch (dbError) {
-      console.error('[mock.service] Fallo insertando usuarios simulados:', dbError);
+      logger.error(`Fallo insertando usuarios simulados: ${dbError.message}`);
       throw createError(ERROR_TYPES.MOCK_SEED_FAILED, {
         details: { coleccion: 'usuarios' },
       });
@@ -145,9 +144,11 @@ class MockService {
     const mockPedidos = this.generateMockPedidos(qty, { usuarioIds });
 
     try {
-      return await pedidoRepository.insertMany(mockPedidos);
+      const inserted = await pedidoRepository.insertMany(mockPedidos);
+      logger.info(`${inserted.length} pedidos de prueba insertados en MongoDB`);
+      return inserted;
     } catch (dbError) {
-      console.error('[mock.service] Fallo insertando pedidos simulados:', dbError);
+      logger.error(`Fallo insertando pedidos simulados: ${dbError.message}`);
       throw createError(ERROR_TYPES.MOCK_SEED_FAILED, {
         details: { coleccion: 'pedidos' },
       });
@@ -169,9 +170,11 @@ class MockService {
     const mockEntregas = this.generateMockEntregas(qty, { pedidoIds, repartidorIds });
 
     try {
-      return await entregaRepository.insertMany(mockEntregas);
+      const inserted = await entregaRepository.insertMany(mockEntregas);
+      logger.info(`${inserted.length} entregas de prueba insertadas en MongoDB`);
+      return inserted;
     } catch (dbError) {
-      console.error('[mock.service] Fallo insertando entregas simuladas:', dbError);
+      logger.error(`Fallo insertando entregas simuladas: ${dbError.message}`);
       throw createError(ERROR_TYPES.MOCK_SEED_FAILED, {
         details: { coleccion: 'entregas' },
       });
