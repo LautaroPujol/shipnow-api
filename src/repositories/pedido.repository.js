@@ -13,6 +13,24 @@ class PedidoRepository {
       .lean();
   }
 
+  async create(pedidoData) {
+    const created = await PedidoModel.create(pedidoData);
+    return created.toObject();
+  }
+
+  async updateById(id, updateData) {
+    return PedidoModel.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    })
+      .populate('usuario', 'firstName lastName email role')
+      .lean();
+  }
+
+  async deleteById(id) {
+    return PedidoModel.findByIdAndDelete(id).lean();
+  }
+
   async insertMany(pedidos) {
     const created = await PedidoModel.insertMany(pedidos);
     return created.map((doc) => doc.toObject());
@@ -23,4 +41,4 @@ class PedidoRepository {
   }
 }
 
-export default new PedidoRepository();  
+export default new PedidoRepository();

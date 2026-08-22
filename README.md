@@ -178,3 +178,40 @@ Después de llamarlo, revisá la consola (deberían verse los 6 niveles) y el ar
 # En PowerShell
 Get-Content logs\error-*.log
 ```
+
+## Documentación de la API con Swagger (Módulo 5)
+
+La API cuenta con documentación interactiva generada con **Swagger/OpenAPI** (`swagger-jsdoc` + `swagger-ui-express`), disponible en: http://localhost:3000/api/docs
+
+Desde ahí se puede consultar cada endpoint (método, ruta, parámetros, body esperado, respuestas) y probarlo directamente con el botón "Try it out", sin necesidad de Postman ni curl.
+
+### Estructura de la documentación
+
+- `src/config/swagger.js`: configuración central (info general, servidores, tags, schemas reutilizables). Separada por completo de la lógica de rutas.
+- Cada archivo de `src/routes/*.js` incluye sus propios comentarios `@swagger` documentando sus endpoints — `swagger-jsdoc` los lee automáticamente al arrancar el servidor.
+
+### Módulos documentados (tags)
+
+| Tag | Endpoints |
+|---|---|
+| **Users** | CRUD de usuarios (`/api/users`) |
+| **Products** | CRUD de productos (`/api/products`) |
+| **Orders** | CRUD de pedidos (`/api/pedidos`) |
+| **Deliveries** | CRUD de entregas (`/api/entregas`) |
+| **Mocks** | Generación en memoria y carga en MongoDB de datos de prueba (`/api/mocks`) |
+| **Logger** | Endpoint de prueba del sistema de logging (`/api/logs/test`) — herramienta interna de validación, no funcionalidad de negocio |
+
+### Schemas reutilizables
+
+`Usuario`, `Producto`, `Pedido`, `Entrega`, `ItemPedido`, más los genéricos `SuccessResponse` y `ErrorResponse` (esta última refleja exactamente la estructura del middleware de errores del Módulo 3: `{ status, type, message, details }`).
+
+### Aclaración importante
+
+Para que `Orders`/`Deliveries` tuvieran endpoints reales que documentar (y no solo schemas sin uso), este módulo agregó un CRUD real de Pedidos y Entregas (`src/services/pedido.service.js`, `entrega.service.js`, y sus respectivos controllers/repositories/routes), reutilizando los modelos y tipos de error (`PEDIDO_NOT_FOUND`, `ENTREGA_NOT_FOUND`, `INVALID_PEDIDO_STATUS`) que ya existían desde los Módulos 2 y 3. Antes de este módulo, Pedidos y Entregas solo se generaban vía `/api/mocks`.
+
+### Cómo probar
+
+1. Levantar el servidor: `npm run dev`.
+2. Abrir `http://localhost:3000/api/docs` en el navegador.
+3. Desplegar cualquier endpoint, click en "Try it out", completar los parámetros/body de ejemplo, y "Execute".
+4. Para ver un error documentado en acción, por ejemplo: crear un pedido (`POST /api/pedidos`) con un `usuario` real (obtenido de `GET /api/users`) y `status: "no_existe"` — debería devolver `400 INVALID_PEDIDO_STATUS`, tal como está documentado.

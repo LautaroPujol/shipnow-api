@@ -1,12 +1,12 @@
 /**
  * @swagger
- * /api/users:
+ * /api/entregas:
  *   get:
- *     summary: Lista todos los usuarios
- *     tags: [Users]
+ *     summary: Lista todas las entregas
+ *     tags: [Deliveries]
  *     responses:
  *       200:
- *         description: Lista de usuarios obtenida correctamente
+ *         description: Lista de entregas obtenida correctamente
  *         content:
  *           application/json:
  *             schema:
@@ -17,26 +17,24 @@
  *                     payload:
  *                       type: array
  *                       items:
- *                         $ref: '#/components/schemas/Usuario'
+ *                         $ref: '#/components/schemas/Entrega'
  *   post:
- *     summary: Crea un nuevo usuario
- *     tags: [Users]
+ *     summary: Crea una nueva entrega asociada a un pedido
+ *     tags: [Deliveries]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [firstName, lastName, email, password]
+ *             required: [pedido]
  *             properties:
- *               firstName: { type: string, example: Ana }
- *               lastName: { type: string, example: Pérez }
- *               email: { type: string, example: ana.perez@test.com }
- *               password: { type: string, example: Secreto123 }
- *               role: { type: string, enum: [admin, cliente, repartidor], example: cliente }
+ *               pedido: { type: string, example: 6a80112c05c662a791d22200, description: 'ID del pedido asociado' }
+ *               repartidor: { type: string, example: 6a7f8f1e05c662a791d22127, description: 'ID de un usuario con rol repartidor (opcional)' }
+ *               fechaEstimada: { type: string, format: date-time }
  *     responses:
  *       201:
- *         description: Usuario creado correctamente
+ *         description: Entrega creada correctamente
  *         content:
  *           application/json:
  *             schema:
@@ -45,27 +43,32 @@
  *                 - type: object
  *                   properties:
  *                     payload:
- *                       $ref: '#/components/schemas/Usuario'
+ *                       $ref: '#/components/schemas/Entrega'
  *       400:
- *         description: Email duplicado
+ *         description: El repartidor indicado no existe o no tiene rol "repartidor"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: El pedido indicado no existe
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *
- * /api/users/{id}:
+ * /api/entregas/{id}:
  *   get:
- *     summary: Obtiene un usuario por id
- *     tags: [Users]
+ *     summary: Obtiene una entrega por id
+ *     tags: [Deliveries]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema: { type: string }
- *         description: ID de Mongo del usuario
  *     responses:
  *       200:
- *         description: Usuario encontrado
+ *         description: Entrega encontrada
  *         content:
  *           application/json:
  *             schema:
@@ -74,16 +77,16 @@
  *                 - type: object
  *                   properties:
  *                     payload:
- *                       $ref: '#/components/schemas/Usuario'
+ *                       $ref: '#/components/schemas/Entrega'
  *       404:
- *         description: Usuario no encontrado
+ *         description: Entrega no encontrada
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *   put:
- *     summary: Actualiza un usuario existente
- *     tags: [Users]
+ *     summary: Actualiza una entrega existente
+ *     tags: [Deliveries]
  *     parameters:
  *       - in: path
  *         name: id
@@ -96,13 +99,12 @@
  *           schema:
  *             type: object
  *             properties:
- *               firstName: { type: string }
- *               lastName: { type: string }
- *               password: { type: string }
- *               role: { type: string, enum: [admin, cliente, repartidor] }
+ *               repartidor: { type: string }
+ *               fechaEntrega: { type: string, format: date-time }
+ *               entregado: { type: boolean }
  *     responses:
  *       200:
- *         description: Usuario actualizado
+ *         description: Entrega actualizada
  *         content:
  *           application/json:
  *             schema:
@@ -111,22 +113,16 @@
  *                 - type: object
  *                   properties:
  *                     payload:
- *                       $ref: '#/components/schemas/Usuario'
- *       400:
- *         description: Rol inválido
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
+ *                       $ref: '#/components/schemas/Entrega'
  *       404:
- *         description: Usuario no encontrado
+ *         description: Entrega no encontrada
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *   delete:
- *     summary: Elimina un usuario
- *     tags: [Users]
+ *     summary: Elimina una entrega
+ *     tags: [Deliveries]
  *     parameters:
  *       - in: path
  *         name: id
@@ -134,9 +130,9 @@
  *         schema: { type: string }
  *     responses:
  *       204:
- *         description: Usuario eliminado correctamente (sin contenido)
+ *         description: Entrega eliminada correctamente (sin contenido)
  *       404:
- *         description: Usuario no encontrado
+ *         description: Entrega no encontrada
  *         content:
  *           application/json:
  *             schema:
@@ -145,14 +141,14 @@
 
 
 import { Router } from 'express';
-import userController from '../controllers/user.controller.js';
+import entregaController from '../controllers/entrega.controller.js';
 
 const router = Router();
 
-router.get('/', userController.getAll);
-router.get('/:id', userController.getById);
-router.post('/', userController.create);
-router.put('/:id', userController.update);
-router.delete('/:id', userController.delete);
+router.get('/', entregaController.getAll);
+router.get('/:id', entregaController.getById);
+router.post('/', entregaController.create);
+router.put('/:id', entregaController.update);
+router.delete('/:id', entregaController.delete);
 
 export default router;

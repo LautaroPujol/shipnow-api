@@ -15,6 +15,25 @@ class EntregaRepository {
       .lean();
   }
 
+  async create(entregaData) {
+    const created = await EntregaModel.create(entregaData);
+    return created.toObject();
+  }
+
+  async updateById(id, updateData) {
+    return EntregaModel.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    })
+      .populate('pedido')
+      .populate('repartidor', 'firstName lastName email role')
+      .lean();
+  }
+
+  async deleteById(id) {
+    return EntregaModel.findByIdAndDelete(id).lean();
+  }
+
   async insertMany(entregas) {
     const created = await EntregaModel.insertMany(entregas);
     return created.map((doc) => doc.toObject());
