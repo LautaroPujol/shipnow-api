@@ -20,7 +20,7 @@ class PedidoRepository {
 
   async updateById(id, updateData) {
     return PedidoModel.findByIdAndUpdate(id, updateData, {
-      new: true,
+       returnDocument: 'after',
       runValidators: true,
     })
       .populate('usuario', 'firstName lastName email role')

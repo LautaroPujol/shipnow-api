@@ -25,7 +25,7 @@ class ProductRepository {
 
   async updateById(id, updateData) {
     return ProductModel.findByIdAndUpdate(id, updateData, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     })
       .select(DEFAULT_PROJECTION)

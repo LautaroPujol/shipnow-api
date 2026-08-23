@@ -1,6 +1,4 @@
 import express from 'express';
-import mongoose from 'mongoose';
-import config from './config/index.js';
 import logger from './config/logger.js';
 import productRoutes from './routes/product.routes.js';
 import userRoutes from './routes/user.routes.js';
@@ -11,6 +9,7 @@ import pedidoRoutes from './routes/pedido.routes.js';
 import entregaRoutes from './routes/entrega.routes.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger.js';
+
 const app = express();
 
 app.use(express.json());
@@ -30,18 +29,4 @@ app.use((req, res) => {
 
 app.use(errorHandler);
 
-async function startServer() {
-  try {
-    await mongoose.connect(config.MONGODB_URI);
-    logger.info('Conexión a MongoDB establecida');
-
-    app.listen(config.PORT, () => {
-      logger.info(`Servidor ShipNow escuchando en el puerto ${config.PORT} (${config.NODE_ENV})`);
-    });
-  } catch (error) {
-    logger.fatal(`No se pudo iniciar la aplicación: ${error.message}`);
-    process.exit(1);
-  }
-}
-
-startServer();
+export default app;

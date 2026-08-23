@@ -22,7 +22,7 @@ class EntregaRepository {
 
   async updateById(id, updateData) {
     return EntregaModel.findByIdAndUpdate(id, updateData, {
-      new: true,
+       returnDocument: 'after',
       runValidators: true,
     })
       .populate('pedido')

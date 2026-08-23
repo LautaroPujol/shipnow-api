@@ -215,3 +215,48 @@ Para que `Orders`/`Deliveries` tuvieran endpoints reales que documentar (y no so
 2. Abrir `http://localhost:3000/api/docs` en el navegador.
 3. Desplegar cualquier endpoint, click en "Try it out", completar los parámetros/body de ejemplo, y "Execute".
 4. Para ver un error documentado en acción, por ejemplo: crear un pedido (`POST /api/pedidos`) con un `usuario` real (obtenido de `GET /api/users`) y `status: "no_existe"` — debería devolver `400 INVALID_PEDIDO_STATUS`, tal como está documentado.
+
+## Testing funcional (Módulo 6)
+
+La API cuenta con una suite de tests funcionales automatizados, escritos con **Mocha** (organización/ejecución), **Chai** (aserciones) y **Supertest** (peticiones HTTP contra la app de Express, sin levantar un servidor real).
+
+### Cómo ejecutar los tests
+
+```bash
+npm test
+```
+
+### Entorno de testing
+
+Los tests corren contra una base de datos **separada** de desarrollo (`shipnow_test`, en el mismo cluster de Atlas), usando su propio archivo de variables de entorno: `.env.test` (no se sube al repositorio — está en `.gitignore`, igual que `.env`).
+
+Variables requeridas en `.env.test`:
+
+```
+PORT=3001
+MONGODB_URI=<connection string de tu cluster, apuntando a una base de testing distinta, ej. "shipnow_test">
+NODE_ENV=test
+```
+
+Como red de seguridad, `test/setup.js` **aborta la suite** si la `MONGODB_URI` de test no incluye `shipnow_test` en el nombre de la base — así se evita borrar datos reales por error.
+
+### Separación app / servidor
+
+`src/app.js` exporta únicamente la app de Express (rutas, middlewares), sin conectar a Mongo ni levantar un puerto. `src/server.js` es el punto de entrada real: importa la app, conecta a MongoDB y hace `listen`. Esto permite que los tests importen `app.js` directamente y usen Supertest sin abrir un servidor real.
+
+### Estrategia de datos y limpieza
+
+- Los tests crean sus propios datos (ej. un usuario antes de crear un pedido asociado) en vez de depender de datos cargados manualmente.
+- Los emails/identificadores usan timestamps para evitar colisiones entre corridas.
+- Al finalizar toda la suite (`afterAll` en `test/setup.js`), se vacían todas las colecciones de la base de test y se cierra la conexión — cada corrida arranca sobre una base limpia.
+
+### Módulos cubiertos
+
+| Archivo | Cubre |
+|---|---|
+| `test/users.test.js` | Listar usuarios, crear usuario válido, email duplicado (400), usuario inexistente (404) |
+| `test/pedidos.test.js` | Crear pedido válido, pedido sin usuario, status inválido (400), consultar por id (200/404), actualizar estado (200/400) |
+| `test/mocks.test.js` | Generación en memoria, cantidades inválidas (negativa, no numérica, excedida), carga real en MongoDB (`/seed`) |
+| `test/logger-and-docs.test.js` | Endpoint de prueba del logger, ruta de Swagger (`/api/docs`), ruta inexistente (404) |
+
+Cada test valida no solo el status HTTP, sino la estructura del body de respuesta (`status`, `type`, `message`, `details` en errores; propiedades relevantes del `payload` en casos exitosos), coherente con el formato definido en el módulo de manejo de errores.
