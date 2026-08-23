@@ -137,11 +137,59 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+  *
+ * /api/entregas/{id}/comprobante:
+ *   post:
+ *     summary: Sube un comprobante y lo asocia a una entrega
+ *     tags: [Deliveries]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [archivo]
+ *             properties:
+ *               archivo:
+ *                 type: string
+ *                 format: binary
+ *                 description: 'Archivo a subir (PDF, JPG, PNG o WEBP, máx. 5MB)'
+ *     responses:
+ *       201:
+ *         description: Comprobante cargado y asociado correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     payload:
+ *                       $ref: '#/components/schemas/Entrega'
+ *       400:
+ *         description: Archivo faltante, tipo de archivo inválido, o tamaño excedido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Entrega no encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 
 import { Router } from 'express';
 import entregaController from '../controllers/entrega.controller.js';
+import uploadController from '../controllers/upload.controller.js';
+import { uploadTo } from '../config/multer.js';
 
 const router = Router();
 
@@ -150,5 +198,10 @@ router.get('/:id', entregaController.getById);
 router.post('/', entregaController.create);
 router.put('/:id', entregaController.update);
 router.delete('/:id', entregaController.delete);
+router.post(
+    '/:id/comprobante',
+    uploadTo('comprobantes').single('archivo'),
+    uploadController.uploadEntregaComprobante
+);
 
 export default router;

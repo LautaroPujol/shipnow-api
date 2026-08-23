@@ -141,11 +141,62 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *  
+ * /api/users/{id}/documentos:
+ *   post:
+ *     summary: Sube un documento y lo asocia a un usuario
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [archivo, tipoDocumento]
+ *             properties:
+ *               archivo:
+ *                 type: string
+ *                 format: binary
+ *                 description: 'Archivo a subir (PDF, JPG, PNG o WEBP, máx. 5MB)'
+ *               tipoDocumento:
+ *                 type: string
+ *                 enum: [dni, licencia_conducir, otro]
+ *     responses:
+ *       201:
+ *         description: Documento cargado y asociado correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     payload:
+ *                       $ref: '#/components/schemas/Usuario'
+ *       400:
+ *         description: Archivo faltante, tipo de archivo/documento inválido, o tamaño excedido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Usuario no encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 
 import { Router } from 'express';
 import userController from '../controllers/user.controller.js';
+import { uploadTo } from '../config/multer.js';
+import uploadController from '../controllers/upload.controller.js';
 
 const router = Router();
 
@@ -154,5 +205,11 @@ router.get('/:id', userController.getById);
 router.post('/', userController.create);
 router.put('/:id', userController.update);
 router.delete('/:id', userController.delete);
+router.post(
+    '/:id/documentos',
+    uploadTo('documentos-usuario').single('archivo'),
+    uploadController.uploadUserDocument
+);
+
 
 export default router;

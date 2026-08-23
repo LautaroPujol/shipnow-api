@@ -16,6 +16,16 @@ const entregaSchema = new mongoose.Schema(
     fechaEstimada: {
       type: Date,
     },
+    comprobantes: [
+      {
+        originalName: { type: String, required: true },
+        storedName: { type: String, required: true },
+        path: { type: String, required: true },
+        mimetype: { type: String, required: true },
+        size: { type: Number, required: true },
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
     fechaEntrega: {
       type: Date,
     },

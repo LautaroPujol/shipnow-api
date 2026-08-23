@@ -20,6 +20,17 @@ const pedidoSchema = new mongoose.Schema(
           default: 1,
         },
       },
+
+    ],
+    comprobantes: [
+      {
+        originalName: { type: String, required: true },
+        storedName: { type: String, required: true },
+        path: { type: String, required: true },
+        mimetype: { type: String, required: true },
+        size: { type: Number, required: true },
+        uploadedAt: { type: Date, default: Date.now },
+      },
     ],
     direccionEntrega: {
       type: String,

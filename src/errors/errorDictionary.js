@@ -62,6 +62,26 @@ const ERROR_DICTIONARY = Object.freeze({
     statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
     message: 'Ocurrió un error al insertar los datos de prueba en la base de datos.',
   },
+  [ERROR_TYPES.FILE_REQUIRED]: {
+    statusCode: HTTP_STATUS.BAD_REQUEST,
+    message: 'Debés adjuntar un archivo.',
+  },
+  [ERROR_TYPES.INVALID_FILE_TYPE]: {
+    statusCode: HTTP_STATUS.BAD_REQUEST,
+    message: 'El tipo de archivo no está permitido.',
+  },
+  [ERROR_TYPES.FILE_TOO_LARGE]: {
+    statusCode: HTTP_STATUS.BAD_REQUEST,
+    message: 'El archivo supera el tamaño máximo permitido.',
+  },
+  [ERROR_TYPES.INVALID_DOCUMENT_TYPE]: {
+    statusCode: HTTP_STATUS.BAD_REQUEST,
+    message: 'El tipo de documento no es válido.',
+  },
+  [ERROR_TYPES.FILE_SAVE_FAILED]: {
+    statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+    message: 'Ocurrió un error al guardar el archivo.',
+  },
 });
 
 export default ERROR_DICTIONARY;

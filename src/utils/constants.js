@@ -22,6 +22,11 @@ export const PEDIDO_PRIORITY = Object.freeze({
   MEDIA: 'media',
   ALTA: 'alta',
 });
+export const TIPOS_DOCUMENTO_USUARIO = Object.freeze({
+  DNI: 'dni',
+  LICENCIA_CONDUCIR: 'licencia_conducir',
+  OTRO: 'otro',
+});
 
 export const HTTP_STATUS = Object.freeze({
   OK: 200,

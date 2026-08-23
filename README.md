@@ -258,5 +258,63 @@ Como red de seguridad, `test/setup.js` **aborta la suite** si la `MONGODB_URI` d
 | `test/pedidos.test.js` | Crear pedido válido, pedido sin usuario, status inválido (400), consultar por id (200/404), actualizar estado (200/400) |
 | `test/mocks.test.js` | Generación en memoria, cantidades inválidas (negativa, no numérica, excedida), carga real en MongoDB (`/seed`) |
 | `test/logger-and-docs.test.js` | Endpoint de prueba del logger, ruta de Swagger (`/api/docs`), ruta inexistente (404) |
+| `test/uploads.test.js` | Carga de documentos de usuario y comprobantes de pedido: éxito, archivo faltante, tipo de documento inválido, entidad inexistente |
 
 Cada test valida no solo el status HTTP, sino la estructura del body de respuesta (`status`, `type`, `message`, `details` en errores; propiedades relevantes del `payload` en casos exitosos), coherente con el formato definido en el módulo de manejo de errores.
+
+## Carga de archivos (Módulo 7)
+
+ShipNow permite subir y gestionar archivos con **Multer**, asociándolos a entidades del sistema. Los archivos se guardan en disco; en MongoDB solo se persisten sus **metadatos**.
+
+### Configuración
+
+`src/config/multer.js` centraliza la configuración (separada de los routers):
+
+- **Almacenamiento**: en disco (`diskStorage`), organizado en subcarpetas por tipo dentro de `uploads/` (`documentos-usuario/`, `comprobantes/`).
+- **Nombres de archivo**: generados con timestamp + número aleatorio, conservando la extensión original — nunca se usa el nombre que sube el cliente para evitar colisiones o nombres maliciosos.
+- **Tipos permitidos**: `application/pdf`, `image/jpeg`, `image/png`, `image/webp`.
+- **Tamaño máximo**: 5MB por archivo.
+
+La carpeta `uploads/` está en `.gitignore` (solo se versionan las subcarpetas vacías vía `.gitkeep`) — los archivos subidos nunca se suben al repositorio.
+
+### Endpoints
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/api/users/:id/documentos` | Sube un documento (`archivo` + `tipoDocumento`) y lo asocia a un usuario |
+| POST | `/api/pedidos/:id/comprobante` | Sube un comprobante (`archivo`) y lo asocia a un pedido |
+| POST | `/api/entregas/:id/comprobante` | Sube un comprobante (`archivo`) y lo asocia a una entrega |
+
+Los tres reciben `multipart/form-data` y están documentados en Swagger con esa forma (ver `/api/docs`, secciones Users/Orders/Deliveries).
+
+### Validaciones y errores
+
+Conectadas al sistema de errores centralizado del Módulo 3:
+
+- `FILE_REQUIRED` (400): no se adjuntó ningún archivo.
+- `INVALID_FILE_TYPE` (400): el tipo MIME no está permitido (lo detecta Multer antes de guardar nada).
+- `FILE_TOO_LARGE` (400): el archivo supera los 5MB.
+- `INVALID_DOCUMENT_TYPE` (400): el `tipoDocumento` enviado no es uno de los válidos (`dni`, `licencia_conducir`, `otro`).
+- `USER_NOT_FOUND` / `PEDIDO_NOT_FOUND` / `ENTREGA_NOT_FOUND` (404): la entidad indicada no existe.
+- `FILE_SAVE_FAILED` (500): falló el guardado de metadata en la base.
+
+Si el archivo llega a guardarse en disco pero la validación posterior falla (entidad inexistente, tipo de documento inválido), el Service elimina el archivo huérfano automáticamente.
+
+### Logging
+
+El logger registra: carga exitosa (`info`), intento sobre entidad inexistente o tipo de documento inválido (`warning`), y fallas al guardar (`error`).
+
+### Cómo probarlo
+
+```bash
+curl -X POST "http://localhost:3000/api/users/<idUsuario>/documentos" \
+  -F "archivo=@dni.pdf" \
+  -F "tipoDocumento=dni"
+
+curl -X POST "http://localhost:3000/api/pedidos/<idPedido>/comprobante" \
+  -F "archivo=@comprobante.jpg"
+```
+
+### Tests
+
+`test/uploads.test.js` cubre: carga exitosa de un documento (con verificación de metadata y que `password` no se filtre), archivo faltante, tipo de documento inválido, y entidad inexistente (usuario y pedido).

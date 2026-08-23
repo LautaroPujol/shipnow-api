@@ -40,6 +40,19 @@ const options = {
             updatedAt: { type: 'string', format: 'date-time' },
           },
         },
+        ArchivoMetadata: {
+          type: 'object',
+          properties: {
+            _id: { type: 'string', example: '6a8b5172e5d23e18cad32ca0' },
+            originalName: { type: 'string', example: 'dni-frente.pdf' },
+            storedName: { type: 'string', example: '1787515250392-811568099.pdf' },
+            path: { type: 'string', example: 'uploads/documentos-usuario/1787515250392-811568099.pdf' },
+            mimetype: { type: 'string', example: 'application/pdf' },
+            size: { type: 'integer', example: 208 },
+            tipoDocumento: { type: 'string', enum: ['dni', 'licencia_conducir', 'otro'], description: 'Solo presente en documentos de usuario' },
+            uploadedAt: { type: 'string', format: 'date-time' },
+          },
+        },
         Usuario: {
           type: 'object',
           properties: {
@@ -48,6 +61,10 @@ const options = {
             lastName: { type: 'string', example: 'Pérez' },
             email: { type: 'string', example: 'ana.perez@test.com' },
             role: { type: 'string', enum: ['admin', 'cliente', 'repartidor'], example: 'cliente' },
+            documentos: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/ArchivoMetadata' },
+            },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
           },
@@ -67,6 +84,10 @@ const options = {
             productos: {
               type: 'array',
               items: { $ref: '#/components/schemas/ItemPedido' },
+            },
+            comprobantes: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/ArchivoMetadata' },
             },
             direccionEntrega: { type: 'string', example: 'Av. Corrientes 1234' },
             status: {
@@ -92,6 +113,10 @@ const options = {
             fechaEstimada: { type: 'string', format: 'date-time' },
             fechaEntrega: { type: 'string', format: 'date-time', nullable: true },
             entregado: { type: 'boolean', example: false },
+            comprobantes: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/ArchivoMetadata' },
+            },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
           },

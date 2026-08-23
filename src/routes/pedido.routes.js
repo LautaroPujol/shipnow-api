@@ -148,10 +148,58 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *
+ * /api/pedidos/{id}/comprobante:
+ *   post:
+ *     summary: Sube un comprobante y lo asocia a un pedido
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [archivo]
+ *             properties:
+ *               archivo:
+ *                 type: string
+ *                 format: binary
+ *                 description: 'Archivo a subir (PDF, JPG, PNG o WEBP, máx. 5MB)'
+ *     responses:
+ *       201:
+ *         description: Comprobante cargado y asociado correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     payload:
+ *                       $ref: '#/components/schemas/Pedido'
+ *       400:
+ *         description: Archivo faltante, tipo de archivo inválido, o tamaño excedido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Pedido no encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 import { Router } from 'express';
 import pedidoController from '../controllers/pedido.controller.js';
+import uploadController from '../controllers/upload.controller.js';
+import { uploadTo } from '../config/multer.js';
 
 const router = Router();
 
@@ -160,5 +208,10 @@ router.get('/:id', pedidoController.getById);
 router.post('/', pedidoController.create);
 router.put('/:id', pedidoController.update);
 router.delete('/:id', pedidoController.delete);
+router.post(
+  '/:id/comprobante',
+  uploadTo('comprobantes').single('archivo'),
+  uploadController.uploadPedidoComprobante
+);
 
 export default router;
