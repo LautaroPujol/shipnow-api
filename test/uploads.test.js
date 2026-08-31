@@ -4,17 +4,30 @@ import path from 'path';
 import fs from 'fs';
 import app from '../src/app.js';
 
-// Archivo de prueba chico, generado en memoria, sin depender de nada externo.
 const TEST_FILE_PATH = path.resolve('test', 'fixtures', 'test-upload.pdf');
+const OVERSIZED_FILE_PATH = path.resolve('test', 'fixtures', 'test-oversized.pdf');
+const INVALID_TYPE_FILE_PATH = path.resolve('test', 'fixtures', 'test-invalid.txt');
 
 function ensureTestFile() {
   const dir = path.dirname(TEST_FILE_PATH);
   fs.mkdirSync(dir, { recursive: true });
   if (!fs.existsSync(TEST_FILE_PATH)) {
-    // PDF mínimo pero válido, suficiente para pasar el chequeo de mimetype.
     const minimalPdf =
       '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\nxref\n0 4\ntrailer<</Size 4/Root 1 0 R>>\n%%EOF';
     fs.writeFileSync(TEST_FILE_PATH, minimalPdf);
+  }
+}
+
+function ensureExtraFixtures() {
+  const dir = path.dirname(OVERSIZED_FILE_PATH);
+  fs.mkdirSync(dir, { recursive: true });
+
+  if (!fs.existsSync(OVERSIZED_FILE_PATH)) {
+    fs.writeFileSync(OVERSIZED_FILE_PATH, Buffer.alloc(6 * 1024 * 1024));
+  }
+
+  if (!fs.existsSync(INVALID_TYPE_FILE_PATH)) {
+    fs.writeFileSync(INVALID_TYPE_FILE_PATH, 'contenido de texto plano, no permitido');
   }
 }
 
@@ -24,6 +37,7 @@ describe('Uploads API', () => {
 
   before(async () => {
     ensureTestFile();
+    ensureExtraFixtures();
 
     const usuario = {
       firstName: 'Upload',
@@ -90,6 +104,27 @@ describe('Uploads API', () => {
       expect(res.status).to.equal(404);
       expect(res.body.type).to.equal('USER_NOT_FOUND');
     });
+
+    it('debería rechazar un archivo que excede el tamaño máximo (400 FILE_TOO_LARGE)', async () => {
+      const res = await request(app)
+        .post(`/api/users/${usuarioId}/documentos`)
+        .field('tipoDocumento', 'dni')
+        .attach('archivo', OVERSIZED_FILE_PATH);
+
+      expect(res.status).to.equal(400);
+      expect(res.body.status).to.equal('error');
+      expect(res.body.type).to.equal('FILE_TOO_LARGE');
+    });
+
+    it('debería rechazar un tipo de archivo no permitido (400 INVALID_FILE_TYPE)', async () => {
+      const res = await request(app)
+        .post(`/api/users/${usuarioId}/documentos`)
+        .field('tipoDocumento', 'dni')
+        .attach('archivo', INVALID_TYPE_FILE_PATH);
+
+      expect(res.status).to.equal(400);
+      expect(res.body.type).to.equal('INVALID_FILE_TYPE');
+    });
   });
 
   describe('POST /api/pedidos/:id/comprobante', () => {
@@ -110,6 +145,34 @@ describe('Uploads API', () => {
 
       expect(res.status).to.equal(404);
       expect(res.body.type).to.equal('PEDIDO_NOT_FOUND');
+    });
+  });
+
+  describe('POST /api/entregas/:id/comprobante', () => {
+    let entregaId;
+
+    before(async () => {
+      const entregaRes = await request(app).post('/api/entregas').send({ pedido: pedidoId });
+      entregaId = entregaRes.body.payload._id;
+    });
+
+    it('debería subir un comprobante válido y asociarlo a la entrega', async () => {
+      const res = await request(app)
+        .post(`/api/entregas/${entregaId}/comprobante`)
+        .attach('archivo', TEST_FILE_PATH);
+
+      expect(res.status).to.equal(201);
+      expect(res.body.payload.comprobantes).to.be.an('array').with.lengthOf(1);
+      expect(res.body.payload.comprobantes[0].originalName).to.equal('test-upload.pdf');
+    });
+
+    it('debería devolver 404 si la entrega no existe', async () => {
+      const res = await request(app)
+        .post('/api/entregas/000000000000000000000000/comprobante')
+        .attach('archivo', TEST_FILE_PATH);
+
+      expect(res.status).to.equal(404);
+      expect(res.body.type).to.equal('ENTREGA_NOT_FOUND');
     });
   });
 });

@@ -20,7 +20,7 @@ class PedidoRepository {
 
   async updateById(id, updateData) {
     return PedidoModel.findByIdAndUpdate(id, updateData, {
-       returnDocument: 'after',
+      returnDocument: 'after',
       runValidators: true,
     })
       .populate('usuario', 'firstName lastName email role')
@@ -39,6 +39,16 @@ class PedidoRepository {
   async countAll() {
     return PedidoModel.countDocuments();
   }
+  async pushComprobante(pedidoId, metadata) {
+    return PedidoModel.findByIdAndUpdate(
+      pedidoId,
+      { $push: { comprobantes: metadata } },
+      { returnDocument: 'after', runValidators: true }
+    )
+      .populate('usuario', 'firstName lastName email role')
+      .lean();
+  }
 }
+
 
 export default new PedidoRepository();

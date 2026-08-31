@@ -2,9 +2,6 @@ import fs from 'fs';
 import userRepository from '../repositories/user.repository.js';
 import pedidoRepository from '../repositories/pedido.repository.js';
 import entregaRepository from '../repositories/entrega.repository.js';
-import UserModel from '../models/user.model.js';
-import PedidoModel from '../models/pedido.model.js';
-import EntregaModel from '../models/entrega.model.js';
 import { TIPOS_DOCUMENTO_USUARIO } from '../utils/constants.js';
 import createError from '../errors/errorFactory.js';
 import ERROR_TYPES from '../errors/enums.js';
@@ -21,7 +18,6 @@ function buildMetadata(file) {
   };
 }
 
-/** Borra un archivo ya guardado en disco (usado si algo falla después de subirlo). */
 function removeFileSafe(filePath) {
   fs.unlink(filePath, (err) => {
     if (err) logger.error(`No se pudo eliminar el archivo huérfano ${filePath}: ${err.message}`);
@@ -52,14 +48,7 @@ class UploadService {
     const metadata = { ...buildMetadata(file), tipoDocumento };
 
     try {
-      const updated = await UserModel.findByIdAndUpdate(
-        userId,
-        { $push: { documentos: metadata } },
-        { returnDocument: 'after', runValidators: true }
-      )
-        .select('-password -__v')
-        .lean();
-
+      const updated = await userRepository.pushDocumento(userId, metadata);
       logger.info(`Documento "${tipoDocumento}" cargado correctamente para usuario ${userId}`);
       return updated;
     } catch (error) {
@@ -74,9 +63,8 @@ class UploadService {
       id: pedidoId,
       file,
       getById: (id) => pedidoRepository.getById(id),
-      Model: PedidoModel,
+      pushFn: (id, metadata) => pedidoRepository.pushComprobante(id, metadata),
       notFoundError: ERROR_TYPES.PEDIDO_NOT_FOUND,
-      populate: [{ path: 'usuario', select: 'firstName lastName email role' }],
       entidad: 'pedido',
     });
   }
@@ -86,17 +74,13 @@ class UploadService {
       id: entregaId,
       file,
       getById: (id) => entregaRepository.getById(id),
-      Model: EntregaModel,
+      pushFn: (id, metadata) => entregaRepository.pushComprobante(id, metadata),
       notFoundError: ERROR_TYPES.ENTREGA_NOT_FOUND,
-      populate: [
-        { path: 'pedido' },
-        { path: 'repartidor', select: 'firstName lastName email role' },
-      ],
       entidad: 'entrega',
     });
   }
 
-  async #attachComprobante({ id, file, getById, Model, notFoundError, populate, entidad }) {
+  async #attachComprobante({ id, file, getById, pushFn, notFoundError, entidad }) {
     if (!file) {
       throw createError(ERROR_TYPES.FILE_REQUIRED);
     }
@@ -111,18 +95,7 @@ class UploadService {
     const metadata = buildMetadata(file);
 
     try {
-      let query = Model.findByIdAndUpdate(
-        id,
-        { $push: { comprobantes: metadata } },
-        { returnDocument: 'after', runValidators: true }
-      );
-
-      for (const p of populate) {
-        query = query.populate(p);
-      }
-
-      const updated = await query.lean();
-
+      const updated = await pushFn(id, metadata);
       logger.info(`Comprobante asociado correctamente a ${entidad} ${id}`);
       return updated;
     } catch (error) {

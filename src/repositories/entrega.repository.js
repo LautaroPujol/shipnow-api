@@ -22,7 +22,7 @@ class EntregaRepository {
 
   async updateById(id, updateData) {
     return EntregaModel.findByIdAndUpdate(id, updateData, {
-       returnDocument: 'after',
+      returnDocument: 'after',
       runValidators: true,
     })
       .populate('pedido')
@@ -41,6 +41,16 @@ class EntregaRepository {
 
   async countAll() {
     return EntregaModel.countDocuments();
+  }
+  async pushComprobante(entregaId, metadata) {
+    return EntregaModel.findByIdAndUpdate(
+      entregaId,
+      { $push: { comprobantes: metadata } },
+      { returnDocument: 'after', runValidators: true }
+    )
+      .populate('pedido')
+      .populate('repartidor', 'firstName lastName email role')
+      .lean();
   }
 }
 

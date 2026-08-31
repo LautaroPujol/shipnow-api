@@ -28,10 +28,19 @@ class UserRepository {
       return safeUser;
     });
   }
+  async pushDocumento(userId, metadata) {
+    return UserModel.findByIdAndUpdate(
+      userId,
+      { $push: { documentos: metadata } },
+      { returnDocument: 'after', runValidators: true }
+    )
+      .select(DEFAULT_PROJECTION)
+      .lean();
+  }
 
   async updateById(id, updateData) {
     return UserModel.findByIdAndUpdate(id, updateData, {
-     returnDocument: 'after',
+      returnDocument: 'after',
       runValidators: true,
     })
       .select(DEFAULT_PROJECTION)

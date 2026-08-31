@@ -6,3 +6,4 @@ uploads/*/*
 !uploads/*/.gitkeep
 test/fixtures/
 test-file.pdf
+test-big.pdf
