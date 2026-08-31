@@ -259,6 +259,8 @@ Como red de seguridad, `test/setup.js` **aborta la suite** si la `MONGODB_URI` d
 | `test/mocks.test.js` | Generación en memoria, cantidades inválidas (negativa, no numérica, excedida), carga real en MongoDB (`/seed`) |
 | `test/logger-and-docs.test.js` | Endpoint de prueba del logger, ruta de Swagger (`/api/docs`), ruta inexistente (404) |
 | `test/uploads.test.js` | Carga de documentos de usuario y comprobantes de pedido: éxito, archivo faltante, tipo de documento inválido, entidad inexistente |
+| `test/products.test.js` | CRUD completo de productos: listar, crear, código duplicado (400), consultar por id (200/404), actualizar stock (recalcula status), eliminar (204/404) |
+| `test/entregas.test.js` | Crear entrega, pedido inexistente (404), repartidor con rol inválido (400), consultar por id (200/404), marcar como entregada, eliminar |
 
 Cada test valida no solo el status HTTP, sino la estructura del body de respuesta (`status`, `type`, `message`, `details` en errores; propiedades relevantes del `payload` en casos exitosos), coherente con el formato definido en el módulo de manejo de errores.
 
