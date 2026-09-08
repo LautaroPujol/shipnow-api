@@ -1,11 +1,17 @@
 import EntregaModel from '../models/entrega.model.js';
 
 class EntregaRepository {
-  async getAll(filter = {}) {
-    return EntregaModel.find(filter)
+  async getAll(filter = {}, { skip = 0, limit = 0 } = {}) {
+    let query = EntregaModel.find(filter)
       .populate('pedido')
       .populate('repartidor', 'firstName lastName email role')
-      .lean();
+      .sort({ createdAt: -1 });
+    if (limit) query = query.skip(skip).limit(limit);
+    return query.lean();
+  }
+
+  async countAll(filter = {}) {
+    return EntregaModel.countDocuments(filter);
   }
 
   async getById(id) {
@@ -39,9 +45,6 @@ class EntregaRepository {
     return created.map((doc) => doc.toObject());
   }
 
-  async countAll() {
-    return EntregaModel.countDocuments();
-  }
   async pushComprobante(entregaId, metadata) {
     return EntregaModel.findByIdAndUpdate(
       entregaId,

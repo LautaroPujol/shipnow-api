@@ -4,8 +4,11 @@ import { HTTP_STATUS } from '../utils/constants.js';
 class PedidoController {
   async getAll(req, res, next) {
     try {
-      const pedidos = await pedidoService.getAllPedidos();
-      return res.status(HTTP_STATUS.OK).json({ status: 'success', payload: pedidos });
+      const { pedidos, meta } = await pedidoService.getAllPedidos({
+        page: req.query.page,
+        limit: req.query.limit,
+      });
+      return res.status(HTTP_STATUS.OK).json({ status: 'success', payload: pedidos, meta });
     } catch (error) {
       return next(error);
     }

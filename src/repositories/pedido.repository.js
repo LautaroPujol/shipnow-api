@@ -1,10 +1,16 @@
 import PedidoModel from '../models/pedido.model.js';
 
 class PedidoRepository {
-  async getAll(filter = {}) {
-    return PedidoModel.find(filter)
+  async getAll(filter = {}, { skip = 0, limit = 0 } = {}) {
+    let query = PedidoModel.find(filter)
       .populate('usuario', 'firstName lastName email role')
-      .lean();
+      .sort({ createdAt: -1 });
+    if (limit) query = query.skip(skip).limit(limit);
+    return query.lean();
+  }
+
+  async countAll(filter = {}) {
+    return PedidoModel.countDocuments(filter);
   }
 
   async getById(id) {
@@ -36,9 +42,6 @@ class PedidoRepository {
     return created.map((doc) => doc.toObject());
   }
 
-  async countAll() {
-    return PedidoModel.countDocuments();
-  }
   async pushComprobante(pedidoId, metadata) {
     return PedidoModel.findByIdAndUpdate(
       pedidoId,
@@ -49,6 +52,5 @@ class PedidoRepository {
       .lean();
   }
 }
-
 
 export default new PedidoRepository();

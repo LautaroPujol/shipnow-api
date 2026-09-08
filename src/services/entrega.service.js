@@ -5,10 +5,21 @@ import { USER_ROLES } from '../utils/constants.js';
 import createError from '../errors/errorFactory.js';
 import ERROR_TYPES from '../errors/enums.js';
 import logger from '../config/logger.js';
+import { resolvePagination, buildPaginationMeta } from '../utils/pagination.js';
 
 class EntregaService {
-  async getAllEntregas() {
-    return entregaRepository.getAll();
+  async getAllEntregas({ page, limit } = {}) {
+    const { page: resolvedPage, limit: resolvedLimit, skip } = resolvePagination(page, limit);
+
+    const [entregas, totalDocs] = await Promise.all([
+      entregaRepository.getAll({}, { skip, limit: resolvedLimit }),
+      entregaRepository.countAll(),
+    ]);
+
+    return {
+      entregas,
+      meta: buildPaginationMeta({ page: resolvedPage, limit: resolvedLimit, totalDocs }),
+    };
   }
 
   async getEntregaById(id) {

@@ -23,6 +23,7 @@ const options = {
       { name: 'Deliveries', description: 'Gestión de entregas' },
       { name: 'Mocks', description: 'Generación y carga de datos de prueba' },
       { name: 'Logger', description: 'Herramienta interna para validar el sistema de logging' },
+      { name: 'Health', description: 'Estado de salud de la API' },
     ],
     components: {
       schemas: {

@@ -320,3 +320,58 @@ curl -X POST "http://localhost:3000/api/pedidos/<idPedido>/comprobante" \
 ### Tests
 
 `test/uploads.test.js` cubre: carga exitosa de un documento (con verificación de metadata y que `password` no se filtre), archivo faltante, tipo de documento inválido, y entidad inexistente (usuario y pedido).
+
+## Performance, producción y Docker (Módulo 8)
+
+### Paginación
+
+Los listados grandes (`GET /api/users`, `GET /api/pedidos`, `GET /api/entregas`) soportan `?page` y `?limit` (default: página 1, 10 resultados; máximo 100 por página). La respuesta incluye un campo `meta` con `page`, `limit`, `totalDocs`, `totalPages`:
+
+```bash
+curl "http://localhost:3000/api/users?page=1&limit=10"
+```
+
+### Health check
+
+`GET /api/health` devuelve el estado de la API sin exponer datos sensibles:
+
+```json
+{ "status": "ok", "environment": "development", "uptime": 123.45, "timestamp": "2026-..." }
+```
+
+### Variables de entorno
+
+| Variable | Requerida | Descripción |
+|---|---|---|
+| `PORT` | Sí | Puerto en el que escucha la API |
+| `MONGODB_URI` | Sí | Connection string de MongoDB |
+| `NODE_ENV` | Sí | `development` \| `test` \| `production` |
+| `LOG_LEVEL` | No | Fuerza el nivel de log de Winston (por defecto: `debug` en dev, `info` en producción) |
+
+Ver `.env.example` (desarrollo) y `.env.test.example` (testing) como plantilla. La app valida `PORT`, `MONGODB_URI` y `NODE_ENV` al arrancar y no inicia si falta alguna, con un mensaje de error claro.
+
+### Criterio sobre endpoints internos en producción
+
+`/api/mocks`, `/api/logs/test` y `/api/docs` quedan **bloqueados** (404) cuando `NODE_ENV=production`, vía el middleware `src/middlewares/blockInProduction.js`. Motivo: mocks permite insertar datos falsos en la base real, el logger de prueba es solo diagnóstico interno, y Swagger expone la estructura completa de la API — ninguno debería ser público en un entorno productivo real.
+
+### Docker
+
+Construir la imagen:
+
+```bash
+docker build -t shipnow-api .
+```
+
+Ejecutar el contenedor (usando tu `.env` local para las variables):
+
+```bash
+docker run -p 3000:3000 --env-file .env shipnow-api
+```
+
+La API queda disponible en `http://localhost:3000`. Con el contenedor corriendo, se puede probar `GET /api/health`, `GET /api/docs` y cualquier endpoint principal (ej. `GET /api/products`) igual que en local.
+
+`.dockerignore` excluye `node_modules`, `.env*`, `.git`, `logs`, `uploads`, `test`, `coverage` y archivos Markdown — la imagen solo contiene `src/`, `package.json` y `package-lock.json`.
+
+### Logs y uploads en Docker
+
+Los logs (`logs/`) y los archivos subidos (`uploads/`) no se copian a la imagen ni se versionan en el repo — en un despliegue real, esas carpetas deberían montarse como volúmenes externos si se necesita persistencia entre reinicios del contenedor.

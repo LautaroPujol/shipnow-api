@@ -27,7 +27,7 @@ const LOG_LEVELS = {
 winston.addColors(LOG_LEVELS.colors);
 
 // En desarrollo mostramos todo, hasta debug. En producción, solo lo relevante.
-const currentLevel = config.NODE_ENV === 'production' ? 'info' : 'debug';
+const currentLevel = config.LOG_LEVEL || (config.NODE_ENV === 'production' ? 'info' : 'debug');
 
 const consoleFormat = winston.format.combine(
   winston.format.colorize({ all: true }),

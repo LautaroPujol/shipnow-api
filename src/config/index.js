@@ -24,6 +24,7 @@ const config = Object.freeze({
   PORT: process.env.PORT,
   MONGODB_URI: process.env.MONGODB_URI,
   NODE_ENV: process.env.NODE_ENV,
+  LOG_LEVEL: process.env.LOG_LEVEL || null,
 });
 
 export default config;

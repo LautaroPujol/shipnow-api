@@ -3,12 +3,23 @@ import userRepository from '../repositories/user.repository.js';
 import { USER_ROLES } from '../utils/constants.js';
 import createError from '../errors/errorFactory.js';
 import ERROR_TYPES from '../errors/enums.js';
+import { resolvePagination, buildPaginationMeta } from '../utils/pagination.js';
 
 const SALT_ROUNDS = 10;
 
 class UserService {
-  async getAllUsers() {
-    return userRepository.getAll();
+  async getAllUsers({ page, limit } = {}) {
+    const { page: resolvedPage, limit: resolvedLimit, skip } = resolvePagination(page, limit);
+
+    const [users, totalDocs] = await Promise.all([
+      userRepository.getAll({}, { skip, limit: resolvedLimit }),
+      userRepository.countAll(),
+    ]);
+
+    return {
+      users,
+      meta: buildPaginationMeta({ page: resolvedPage, limit: resolvedLimit, totalDocs }),
+    };
   }
 
   async getUserById(id) {

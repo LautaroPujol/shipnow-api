@@ -3,8 +3,14 @@ import UserModel from '../models/user.model.js';
 const DEFAULT_PROJECTION = '-password -__v';
 
 class UserRepository {
-  async getAll(filter = {}) {
-    return UserModel.find(filter, DEFAULT_PROJECTION).lean();
+  async getAll(filter = {}, { skip = 0, limit = 0 } = {}) {
+    let query = UserModel.find(filter, DEFAULT_PROJECTION).sort({ createdAt: -1 });
+    if (limit) query = query.skip(skip).limit(limit);
+    return query.lean();
+  }
+
+  async countAll(filter = {}) {
+    return UserModel.countDocuments(filter);
   }
 
   async getById(id) {

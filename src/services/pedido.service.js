@@ -4,12 +4,22 @@ import { PEDIDO_STATUS, PEDIDO_PRIORITY } from '../utils/constants.js';
 import createError from '../errors/errorFactory.js';
 import ERROR_TYPES from '../errors/enums.js';
 import logger from '../config/logger.js';
+import { resolvePagination, buildPaginationMeta } from '../utils/pagination.js';
 
 class PedidoService {
-  async getAllPedidos() {
-    return pedidoRepository.getAll();
-  }
+  async getAllPedidos({ page, limit } = {}) {
+    const { page: resolvedPage, limit: resolvedLimit, skip } = resolvePagination(page, limit);
 
+    const [pedidos, totalDocs] = await Promise.all([
+      pedidoRepository.getAll({}, { skip, limit: resolvedLimit }),
+      pedidoRepository.countAll(),
+    ]);
+
+    return {
+      pedidos,
+      meta: buildPaginationMeta({ page: resolvedPage, limit: resolvedLimit, totalDocs }),
+    };
+  }
   async getPedidoById(id) {
     const pedido = await pedidoRepository.getById(id);
     if (!pedido) {

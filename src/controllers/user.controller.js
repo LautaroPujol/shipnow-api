@@ -4,8 +4,11 @@ import { HTTP_STATUS } from '../utils/constants.js';
 class UserController {
   async getAll(req, res, next) {
     try {
-      const users = await userService.getAllUsers();
-      return res.status(HTTP_STATUS.OK).json({ status: 'success', payload: users });
+      const { users, meta } = await userService.getAllUsers({
+        page: req.query.page,
+        limit: req.query.limit,
+      });
+      return res.status(HTTP_STATUS.OK).json({ status: 'success', payload: users, meta });
     } catch (error) {
       return next(error);
     }

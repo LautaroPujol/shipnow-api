@@ -4,13 +4,15 @@ import { HTTP_STATUS } from '../utils/constants.js';
 class EntregaController {
   async getAll(req, res, next) {
     try {
-      const entregas = await entregaService.getAllEntregas();
-      return res.status(HTTP_STATUS.OK).json({ status: 'success', payload: entregas });
+      const { entregas, meta } = await entregaService.getAllEntregas({
+        page: req.query.page,
+        limit: req.query.limit,
+      });
+      return res.status(HTTP_STATUS.OK).json({ status: 'success', payload: entregas, meta });
     } catch (error) {
       return next(error);
     }
   }
-
   async getById(req, res, next) {
     try {
       const entrega = await entregaService.getEntregaById(req.params.id);

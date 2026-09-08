@@ -9,18 +9,20 @@ import pedidoRoutes from './routes/pedido.routes.js';
 import entregaRoutes from './routes/entrega.routes.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger.js';
+import healthRoutes from './routes/health.routes.js';
+import blockInProduction from './middlewares/blockInProduction.js';
 
 const app = express();
 
 app.use(express.json());
-
+app.use('/api/health', healthRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/mocks', mockRoutes);
-app.use('/api/logs', logRoutes);
+app.use('/api/mocks', blockInProduction, mockRoutes);
+app.use('/api/logs', blockInProduction, logRoutes);
 app.use('/api/pedidos', pedidoRoutes);
 app.use('/api/entregas', entregaRoutes);
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api/docs', blockInProduction, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use((req, res) => {
   logger.warning(`Ruta inexistente solicitada: ${req.method} ${req.originalUrl}`);
