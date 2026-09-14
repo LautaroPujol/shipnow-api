@@ -2,6 +2,47 @@
 
 API de ShipNow refactorizada de un modelo monolítico a una arquitectura profesional por capas: **Controller → Service → Repository**, con configuración de entorno validada al arranque.
 
+## Descripción del proyecto
+
+ShipNow es una API REST de gestión de pedidos y entregas (usuarios, productos, pedidos, entregas), desarrollada en Node.js/Express con MongoDB. El proyecto se construyó de forma incremental a lo largo de 8 módulos, cada uno agregando una práctica profesional distinta: arquitectura por capas, mocking, manejo de errores, logging, documentación, testing, carga de archivos y despliegue con Docker.
+
+### Tecnologías
+
+- **Runtime**: Node.js 20, Express 5
+- **Base de datos**: MongoDB + Mongoose
+- **Autenticación de datos**: bcryptjs (hash de contraseñas)
+- **Documentación**: Swagger/OpenAPI (`swagger-jsdoc`, `swagger-ui-express`)
+- **Logging**: Winston + `winston-daily-rotate-file`
+- **Carga de archivos**: Multer
+- **Testing**: Mocha, Chai, Supertest
+- **Contenedores**: Docker, Docker Compose
+
+### Arquitectura
+
+Arquitectura por capas: **Router → Controller → Service → Repository → Model**.
+
+- Los **routers** solo conectan cada ruta con su método del Controller (sin lógica).
+- Los **controllers** manejan `req`/`res` y códigos de estado, sin conocer Mongoose.
+- Los **services** concentran la lógica de negocio (validaciones, reglas, hashing) y son los únicos que lanzan errores del dominio.
+- Los **repositories** son el único lugar que conoce Mongoose/MongoDB.
+- Un **middleware global** (`errorHandler`) centraliza todas las respuestas de error.
+
+El detalle completo de cada decisión de arquitectura está documentado en las secciones de cada módulo, más abajo en este README.
+
+### Endpoints principales
+
+Ver la documentación interactiva completa en `/api/docs` (Swagger). Resumen:
+
+| Recurso | Rutas |
+|---|---|
+| Health check | `GET /api/health` |
+| Usuarios | `GET/POST /api/users`, `GET/PUT/DELETE /api/users/:id`, `POST /api/users/:id/documentos` |
+| Productos | `GET/POST /api/products`, `GET/PUT/DELETE /api/products/:id` |
+| Pedidos | `GET/POST /api/pedidos`, `GET/PUT/DELETE /api/pedidos/:id`, `POST /api/pedidos/:id/comprobante` |
+| Entregas | `GET/POST /api/entregas`, `GET/PUT/DELETE /api/entregas/:id`, `POST /api/entregas/:id/comprobante` |
+| Mocks | `GET/POST /api/mocks/*` |
+| Logger (interno) | `GET /api/logs/test` |
+
 ## Estructura del proyecto
 
 \`\`\`
@@ -358,17 +399,33 @@ Ver `.env.example` (desarrollo) y `.env.test.example` (testing) como plantilla. 
 
 Construir la imagen:
 
-```bash
+\`\`\`bash
 docker build -t shipnow-api .
-```
+\`\`\`
 
 Ejecutar el contenedor (usando tu `.env` local para las variables):
 
-```bash
+\`\`\`bash
 docker run -p 3000:3000 --env-file .env shipnow-api
-```
+\`\`\`
 
 La API queda disponible en `http://localhost:3000`. Con el contenedor corriendo, se puede probar `GET /api/health`, `GET /api/docs` y cualquier endpoint principal (ej. `GET /api/products`) igual que en local.
+
+### Levantar todo con Docker Compose (API + MongoDB)
+
+`docker-compose.yml` levanta la API junto con una instancia de MongoDB en un contenedor, con un healthcheck que hace que la API espere a que la base esté realmente lista antes de arrancar:
+
+\`\`\`bash
+docker-compose up --build
+\`\`\`
+
+La API queda en `http://localhost:3000`, corriendo en modo `production` (bloqueando mocks, logger de prueba y Swagger, según el criterio de la sección anterior). MongoDB persiste sus datos en un volumen (`mongo-data`), y `logs/`/`uploads/` de tu máquina se montan dentro del contenedor.
+
+Para bajar todo:
+
+\`\`\`bash
+docker-compose down
+\`\`\`
 
 `.dockerignore` excluye `node_modules`, `.env*`, `.git`, `logs`, `uploads`, `test`, `coverage` y archivos Markdown — la imagen solo contiene `src/`, `package.json` y `package-lock.json`.
 

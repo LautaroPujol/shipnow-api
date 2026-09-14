@@ -70,7 +70,7 @@ const combinedFileTransport = new DailyRotateFile({
 // La consola solo tiene sentido mientras desarrollás: en producción,
 // nadie mira la terminal de un proceso corriendo en un servidor.
 const transports = [errorFileTransport, combinedFileTransport];
-if (config.NODE_ENV !== 'production') {
+if (config.NODE_ENV === 'development') {
   transports.push(new winston.transports.Console({ format: consoleFormat }));
 }
 
