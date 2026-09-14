@@ -44,10 +44,9 @@ const fileFormat = winston.format.combine(
   )
 );
 
-// Transporte con rotación: un archivo nuevo por día, se guardan
-// como máximo 14 días de historial, y cada archivo no supera los 20MB.
+// Transporte de errores: rotación diaria, solo error/fatal (<= 'error' en severidad).
 const errorFileTransport = new DailyRotateFile({
-  level: 'error', // acá quedan SOLO error y fatal (todo lo <= 'error' en severidad)
+  level: 'error',
   dirname: 'logs',
   filename: 'error-%DATE%.log',
   datePattern: 'YYYY-MM-DD',
@@ -56,13 +55,29 @@ const errorFileTransport = new DailyRotateFile({
   format: fileFormat,
 });
 
+// Transporte de actividad general: rotación diaria, TODO lo que esté
+// dentro del nivel activo (currentLevel) queda acá, no solo errores.
+const combinedFileTransport = new DailyRotateFile({
+  level: currentLevel,
+  dirname: 'logs',
+  filename: 'combined-%DATE%.log',
+  datePattern: 'YYYY-MM-DD',
+  maxSize: '20m',
+  maxFiles: '14d',
+  format: fileFormat,
+});
+
+// La consola solo tiene sentido mientras desarrollás: en producción,
+// nadie mira la terminal de un proceso corriendo en un servidor.
+const transports = [errorFileTransport, combinedFileTransport];
+if (config.NODE_ENV !== 'production') {
+  transports.push(new winston.transports.Console({ format: consoleFormat }));
+}
+
 const logger = winston.createLogger({
   levels: LOG_LEVELS.levels,
   level: currentLevel,
-  transports: [
-    new winston.transports.Console({ format: consoleFormat }),
-    errorFileTransport,
-  ],
+  transports,
 });
 
 export default logger;
