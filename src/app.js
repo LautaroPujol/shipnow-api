@@ -22,7 +22,7 @@ app.use('/api/mocks', blockInProduction, mockRoutes);
 app.use('/api/logs', blockInProduction, logRoutes);
 app.use('/api/pedidos', pedidoRoutes);
 app.use('/api/entregas', entregaRoutes);
-app.use('/api/docs', blockInProduction, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use((req, res) => {
   logger.warning(`Ruta inexistente solicitada: ${req.method} ${req.originalUrl}`);
